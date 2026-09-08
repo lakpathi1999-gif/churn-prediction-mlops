@@ -1,0 +1,55 @@
+name: CI
+
+# Run this workflow automatically on every push or pull request to main
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  GITHUB_USER_ID: 86817617
+  GITHUB_USERNAME: lakpathi1999
+
+jobs:
+  # -------------------------------------------------------------
+  # Job 1: Run automated tests
+  # -------------------------------------------------------------
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: pytest -v
+
+  # -------------------------------------------------------------
+  # Job 2: Build the Docker image (only runs if tests pass --
+  # "needs: test" enforces that order)
+  # -------------------------------------------------------------
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t churn-api:${{ github.sha }} .
+
+      # NOTE: this builds the image to PROVE it builds successfully in
+      # a clean environment -- it doesn't push it anywhere yet. Pushing
+      # to a registry (Docker Hub / GitHub Container Registry) is the
+      # natural next addition once this base pipeline is working, and
+      # requires adding registry credentials as GitHub Secrets.
