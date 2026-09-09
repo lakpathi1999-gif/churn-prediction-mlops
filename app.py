@@ -1,16 +1,16 @@
 """
-Churn Prediction API — Serves the model tagged @production in MLflow Registry
+Churn Prediction API
 --------------------------------------------------------------------------------
 Loads the model ONCE at startup (not per-request -- that would be slow),
 then exposes a /predict endpoint that takes raw customer fields and
-returns a churn prediction + probability.
+returns a churn prediction + probability. Root ("/") serves the
+standalone prediction UI directly.
 
 Run with:
     uvicorn app:app --reload
-
-Then open http://127.0.0.1:8000/docs for an interactive test UI (built into FastAPI).
 """
 
+import os
 import joblib
 import pandas as pd
 from fastapi import FastAPI, HTTPException
@@ -20,14 +20,13 @@ from pydantic import BaseModel, Field
 
 MODEL_PATH = "churn_model.pkl"
 
-# Disable the automatic docs and OpenAPI JSON so users only see the
-# standalone prediction UI when visiting the service.
+# Docs/OpenAPI disabled so users only see the standalone prediction UI.
 app = FastAPI(title="Churn Prediction API", version="1.0", docs_url=None, redoc_url=None, openapi_url=None)
 
-# Serve a separate static UI from /ui (keeps the UI out of the FastAPI
-# route handlers and in a standalone HTML/JS file). The directory is
-# copied into the Docker image by the Dockerfile.
-app.mount("/ui", StaticFiles(directory="ui", html=True), name="ui")
+# Mount the static UI assets, guarded so a missing `ui/` folder (e.g. a
+# stripped-down test environment) never crashes the whole app on import.
+if os.path.isdir("ui"):
+    app.mount("/ui", StaticFiles(directory="ui", html=True), name="ui")
 
 # -----------------------------------------------------------------
 # Load the model once when the server starts -- NOT inside the
@@ -86,7 +85,10 @@ def root():
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "model_uri": MODEL_URI}
+    # FIX: this previously referenced MODEL_URI, a name that no longer
+    # exists after switching from MLflow registry loading to a bundled
+    # local file -- that leftover reference is what crashed this endpoint.
+    return {"status": "ok", "model_path": MODEL_PATH}
 
 
 @app.post("/predict")

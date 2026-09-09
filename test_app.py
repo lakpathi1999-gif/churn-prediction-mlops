@@ -29,10 +29,12 @@ def test_health_endpoint_returns_ok():
     assert response.json()["status"] == "ok"
 
 
-def test_root_endpoint_returns_message():
+def test_root_endpoint_serves_ui_html():
+    # Root now serves the standalone prediction UI directly (index.html),
+    # not a JSON message -- updated to match that design decision.
     response = client.get("/")
     assert response.status_code == 200
-    assert "message" in response.json()
+    assert "text/html" in response.headers["content-type"]
 
 
 def test_predict_with_valid_input_returns_expected_fields():
