@@ -76,10 +76,21 @@ class CustomerInput(BaseModel):
         }
 
 
+# @app.get("/")
+# def root():
+#     # Serve the static UI index directly at the root path so visiting
+#     # http://host:8000/ shows the prediction UI (not FastAPI docs).
+#     return FileResponse("ui/index.html")
+
 @app.get("/")
 def root():
     # Serve the static UI index directly at the root path so visiting
     # http://host:8000/ shows the prediction UI (not FastAPI docs).
+    if not os.path.isfile("ui/index.html"):
+        raise HTTPException(
+            status_code=404,
+            detail="UI not available. Make sure ui/index.html exists."
+        )
     return FileResponse("ui/index.html")
 
 
