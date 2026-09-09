@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Churn Prediction UI</title>
+    <style>
+      :root { --bg: #f3f6f9; --card: #ffffff; --muted: #6b7280; --accent: #2563eb }
+      html,body { height:100%; margin:0 }
+      body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial; background:var(--bg); color:#0f172a }
+
+      /* Page centering */
+      .page { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:28px }
+      .card { width:100%; max-width:760px; background:var(--card); border-radius:12px; box-shadow:0 10px 30px rgba(15,23,42,0.08); padding:28px }
+      .title { margin:0 0 6px 0; font-size:22px; color:#0f172a }
+      .subtitle { margin:0 0 16px 0; color:var(--muted); font-size:14px }
+
+      .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px 18px }
+      .field { display:flex; flex-direction:column }
+      .label-text { font-size:13px; color:#374151; margin-bottom:6px; font-weight:600 }
+      input, select { padding:10px 12px; border:1px solid #e6eefc; border-radius:8px; font-size:14px; color:#0f172a; background:#fbfdff }
+
+      .actions { grid-column:1 / -1; display:flex; justify-content:flex-end }
+      .btn { background:var(--accent); color:white; border:none; padding:10px 18px; border-radius:8px; font-weight:700; cursor:pointer }
+      .btn:active { transform:translateY(1px) }
+
+      .result { grid-column:1 / -1; margin-top:12px; padding:14px; border-radius:8px; background:#f8fafc; border:1px solid #e6eefc; color:#0b1220 }
+
+      @media (max-width: 640px) {
+        .form-grid { grid-template-columns:1fr }
+        .actions { justify-content:center }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="card">
+        <h1 class="title">Churn Prediction</h1>
+
+        <form id="prediction-form">
+          <div class="form-grid">
+            <label class="field">
+              <span class="label-text">Tenure (months)</span>
+              <input type="number" id="tenure_months" min="0" max="100" value="3" required />
+            </label>
+
+            <label class="field">
+              <span class="label-text">Monthly Charges</span>
+              <input type="number" id="monthly_charges" min="0" step="0.01" value="95.5" required />
+            </label>
+
+            <label class="field">
+              <span class="label-text">Total Charges</span>
+              <input type="number" id="total_charges" min="0" step="0.01" value="286.5" required />
+            </label>
+
+            <label class="field">
+              <span class="label-text">Number of Support Calls</span>
+              <input type="number" id="num_support_calls" min="0" value="4" required />
+            </label>
+
+            <label class="field">
+              <span class="label-text">Contract Type</span>
+              <select id="contract_type">
+                <option>Month-to-month</option>
+                <option>One year</option>
+                <option>Two year</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span class="label-text">Payment Method</span>
+              <select id="payment_method">
+                <option>Electronic check</option>
+                <option>Credit card</option>
+                <option>Bank transfer</option>
+                <option>Mailed check</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span class="label-text">Has Tech Support</span>
+              <select id="has_tech_support">
+                <option value="0">No</option>
+                <option value="1">Yes</option>
+              </select>
+            </label>
+
+            <div class="actions">
+              <button type="submit" class="btn">Predict</button>
+            </div>
+
+            <div id="result" class="result" style="display:none"></div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById('prediction-form');
+      const resultEl = document.getElementById('result');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const payload = {
+          tenure_months: parseInt(document.getElementById('tenure_months').value, 10),
+          monthly_charges: parseFloat(document.getElementById('monthly_charges').value),
+          total_charges: parseFloat(document.getElementById('total_charges').value),
+          num_support_calls: parseInt(document.getElementById('num_support_calls').value, 10),
+          contract_type: document.getElementById('contract_type').value,
+          payment_method: document.getElementById('payment_method').value,
+          has_tech_support: parseInt(document.getElementById('has_tech_support').value, 10),
+        };
+
+        resultEl.style.display = 'none';
+
+        try {
+          const resp = await fetch('/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+
+          if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            resultEl.style.display = 'block';
+            resultEl.innerHTML = `<strong>Error:</strong> ${err.detail || resp.statusText}`;
+            return;
+          }
+
+          const data = await resp.json();
+          resultEl.style.display = 'block';
+          resultEl.innerHTML = `
+            <strong>Prediction:</strong> ${data.will_likely_churn ? 'Likely to churn' : 'Unlikely to churn'}<br>
+            <strong>Probability:</strong> ${data.churn_probability}<br>
+            <strong>Raw label:</strong> ${data.churn_prediction}
+          `;
+        } catch (err) {
+          resultEl.style.display = 'block';
+          resultEl.innerHTML = `<strong>Request failed:</strong> ${err.message}`;
+        }
+      });
+    </script>
+  </body>
+</html>
