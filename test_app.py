@@ -10,7 +10,7 @@ real churn_model.pkl at import time, same as the real app would.
 from fastapi.testclient import TestClient
 from app import app
 
-client = TestClient(app)
+client = TestClient(app) sdacf
 
 VALID_CUSTOMER = {
     "tenure_months": 3,
