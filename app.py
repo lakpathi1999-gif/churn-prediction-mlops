@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-MODEL_PATH = "churn_model.pkl"
+MODEL_PATH = "churn_model.pkl"lj
 
 # Docs/OpenAPI disabled so users only see the standalone prediction UI.
 app = FastAPI(title="Churn Prediction API", version="1.0", docs_url=None, redoc_url=None, openapi_url=None)
